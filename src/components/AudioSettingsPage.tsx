@@ -1,8 +1,11 @@
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { ArrowLeft, Save, Volume2 } from 'lucide-react';
-import { useState } from 'react';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
+import { speakText, getVoices, isSpeechSynthesisSupported } from '../utils/textToSpeech';
+import { toast } from 'sonner';
+import { api } from '../utils/api';
 
 interface AudioSettingsPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -26,7 +29,57 @@ const femaleVoices = [
 export function AudioSettingsPage({ onNavigate, isSidebarCollapsed = false, onToggleCollapse, onSignOut }: AudioSettingsPageProps) {
   const [selectedVoice, setSelectedVoice] = useState('male-1');
   const [readingSpeed, setReadingSpeed] = useState(1.0);
+  const [voicesReady, setVoicesReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const previewText = "Nội dung nghe thử";
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const userId = localStorage.getItem('userId') || 'demo';
+        const response = await api.settings.getAudio(userId);
+        
+        if (response.data) {
+          setSelectedVoice(response.data.voice || 'male-1');
+          setReadingSpeed(response.data.speechRate || 1.0);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Wait for voices to load
+  useEffect(() => {
+    if (!isSpeechSynthesisSupported()) {
+      console.warn('Speech synthesis is not supported');
+      return;
+    }
+
+    const checkVoices = () => {
+      const voices = getVoices();
+      if (voices.length > 0) {
+        setVoicesReady(true);
+      } else {
+        // Try again after a short delay
+        setTimeout(checkVoices, 100);
+      }
+    };
+
+    checkVoices();
+
+    // Listen for voices changed event
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        setVoicesReady(true);
+      };
+    }
+  }, []);
 
   const handleBack = () => {
     if (onNavigate) {
@@ -34,11 +87,31 @@ export function AudioSettingsPage({ onNavigate, isSidebarCollapsed = false, onTo
     }
   };
 
-  const handleSave = () => {
-    // Save settings logic here
-    console.log('Voice settings saved:', selectedVoice);
-    if (onNavigate) {
-      onNavigate('SettingsOverview');
+  const handleSave = async () => {
+    try {
+      const userId = localStorage.getItem('userId') || 'demo';
+      const response = await api.settings.updateAudio(
+        {
+          voice: selectedVoice,
+          speechRate: readingSpeed,
+          pitch: 1.0,
+          volume: 1.0,
+        },
+        userId
+      );
+
+      if (response.error) {
+        toast.error('Không thể lưu cài đặt. Vui lòng thử lại.');
+        console.error('Save settings error:', response.error);
+      } else {
+        toast.success('Đã lưu cài đặt thành công!');
+        if (onNavigate) {
+          onNavigate('SettingsOverview');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Không thể lưu cài đặt. Vui lòng thử lại.');
     }
   };
 
@@ -47,25 +120,28 @@ export function AudioSettingsPage({ onNavigate, isSidebarCollapsed = false, onTo
     playPreview(voiceId);
   };
 
-  const playPreview = (voiceId?: string) => {
-    const voice = voiceId || selectedVoice;
-    console.log('Playing preview with voice:', voice, 'Text:', previewText, 'Speed:', readingSpeed);
-    
-    // Web Speech API implementation (browser-dependent)
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(previewText);
-      utterance.lang = 'vi-VN';
-      utterance.rate = readingSpeed;
-      
-      // Try to find Vietnamese voice
-      const voices = window.speechSynthesis.getVoices();
-      const vietnameseVoice = voices.find(v => v.lang.includes('vi'));
-      if (vietnameseVoice) {
-        utterance.voice = vietnameseVoice;
-      }
-      
-      window.speechSynthesis.speak(utterance);
+  const playPreview = async (voiceId?: string) => {
+    if (!isSpeechSynthesisSupported()) {
+      toast.error('Trình duyệt của bạn không hỗ trợ phát âm.');
+      return;
+    }
+
+    if (!voicesReady) {
+      toast.info('Đang tải giọng nói... Vui lòng thử lại sau.');
+      return;
+    }
+
+    try {
+      await speakText({
+        text: previewText,
+        lang: 'vi-VN',
+        rate: readingSpeed,
+        pitch: 1.0,
+        volume: 1.0,
+      });
+    } catch (error) {
+      console.error('Error playing preview:', error);
+      toast.error('Không thể phát âm. Vui lòng thử lại.');
     }
   };
 

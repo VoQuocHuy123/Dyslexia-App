@@ -4,6 +4,7 @@ import { QuickSettingsDrawer } from './QuickSettingsDrawer';
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Volume2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { speakText } from '../utils/textToSpeech';
 
 interface ReadingPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -100,6 +101,7 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
   const [boldWords, setBoldWords] = useState<Set<string>>(new Set());
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const readingBoxRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lastScrollTime = useRef<number>(0);
@@ -132,9 +134,42 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
     });
   };
 
-  const handlePlayWord = (word: string) => {
-    toast.info(`Đang phát âm: "${word}"`);
-    // In a real app, this would use Web Speech API
+  const handlePlayWord = async (word: string) => {
+    try {
+      await speakText({
+        text: word,
+        lang: 'vi-VN',
+        rate: 1.0,
+      });
+    } catch (error) {
+      console.error('Error playing word:', error);
+      toast.error('Không thể phát âm. Vui lòng thử lại.');
+    }
+  };
+
+  const handlePlayText = async () => {
+    if (isPlaying) {
+      // Stop speaking
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setIsPlaying(false);
+      return;
+    }
+
+    setIsPlaying(true);
+    try {
+      await speakText({
+        text: sampleText,
+        lang: 'vi-VN',
+        rate: 1.0,
+      });
+    } catch (error) {
+      console.error('Error playing text:', error);
+      toast.error('Không thể phát âm. Vui lòng thử lại.');
+    } finally {
+      setIsPlaying(false);
+    }
   };
 
   // Highlight mirror letters within a word
@@ -423,9 +458,11 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
             onToggleFocusMode={setIsFocusMode}
             onPreviousLine={handlePreviousLine}
             onNextLine={handleNextLine}
+            onPlayText={handlePlayText}
             isMirrorEnabled={isMirrorEnabled}
             isSyllableMode={isSyllableMode}
             isFocusMode={isFocusMode}
+            isPlaying={isPlaying}
           />
         </div>
 

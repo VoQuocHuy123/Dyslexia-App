@@ -2,6 +2,8 @@ import { Sidebar } from './Sidebar';
 import { useState, useRef, useEffect } from 'react';
 import svgPaths from '../imports/svg-5gav2b48w6';
 import { Check, X } from 'lucide-react';
+import { speakText } from '../utils/textToSpeech';
+import { toast } from 'sonner';
 
 interface LibraryPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -95,8 +97,17 @@ export function LibraryPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
 
   const groupedWords = groupWordsByDate(filteredWords);
 
-  const handlePlayPronunciation = (word: string) => {
-    console.log(`Playing pronunciation for: ${word}`);
+  const handlePlayPronunciation = async (word: string) => {
+    try {
+      await speakText({
+        text: word,
+        lang: 'vi-VN',
+        rate: 1.0,
+      });
+    } catch (error) {
+      console.error('Error playing pronunciation:', error);
+      toast.error('Không thể phát âm. Vui lòng thử lại.');
+    }
   };
 
   const handleAddWord = () => {

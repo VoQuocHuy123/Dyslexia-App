@@ -2,7 +2,9 @@ import { Sidebar } from './Sidebar';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
 import { Check, ArrowLeft, Save } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../utils/api';
+import { toast } from 'sonner';
 
 interface DisplaySettingsPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -52,6 +54,31 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
   const [letterSpacing, setLetterSpacing] = useState(0.14);
   const [lineSpacing, setLineSpacing] = useState(1.8);
   const [selectedTheme, setSelectedTheme] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const userId = localStorage.getItem('userId') || 'demo';
+        const response = await api.settings.getDisplay(userId);
+        
+        if (response.data) {
+          setSelectedFont(response.data.fontFamily || fontOptions[2].value);
+          setFontSize(response.data.fontSize || 26);
+          setLetterSpacing(response.data.letterSpacing || 0.14);
+          setLineSpacing(response.data.lineSpacing || 1.8);
+          setSelectedTheme(typeof response.data.theme === 'number' ? response.data.theme : 0);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const currentTheme = colorThemes[selectedTheme];
 
@@ -61,18 +88,32 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
     }
   };
 
-  const handleSave = () => {
-    // Save settings logic here
-    console.log('Settings saved:', {
-      font: selectedFont,
-      fontSize,
-      letterSpacing,
-      lineSpacing,
-      theme: selectedTheme,
-    });
-    // Show success message or navigate back
-    if (onNavigate) {
-      onNavigate('SettingsOverview');
+  const handleSave = async () => {
+    try {
+      const userId = localStorage.getItem('userId') || 'demo';
+      const response = await api.settings.updateDisplay(
+        {
+          fontFamily: selectedFont,
+          fontSize,
+          letterSpacing,
+          lineSpacing,
+          theme: selectedTheme,
+        },
+        userId
+      );
+
+      if (response.error) {
+        toast.error('Không thể lưu cài đặt. Vui lòng thử lại.');
+        console.error('Save settings error:', response.error);
+      } else {
+        toast.success('Đã lưu cài đặt thành công!');
+        if (onNavigate) {
+          onNavigate('SettingsOverview');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Không thể lưu cài đặt. Vui lòng thử lại.');
     }
   };
 

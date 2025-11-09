@@ -7,9 +7,11 @@ interface ReadingToolbarProps {
   onToggleFocusMode?: (enabled: boolean) => void;
   onPreviousLine?: () => void;
   onNextLine?: () => void;
+  onPlayText?: () => void;
   isMirrorEnabled?: boolean;
   isSyllableMode?: boolean;
   isFocusMode?: boolean;
+  isPlaying?: boolean;
 }
 
 export function ReadingToolbar({ 
@@ -18,11 +20,12 @@ export function ReadingToolbar({
   onToggleFocusMode,
   onPreviousLine,
   onNextLine,
+  onPlayText,
   isMirrorEnabled = false,
   isSyllableMode = false,
-  isFocusMode = false
+  isFocusMode = false,
+  isPlaying = false
 }: ReadingToolbarProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
@@ -62,17 +65,19 @@ export function ReadingToolbar({
         </button>
 
         {/* Play/Pause Toggle */}
-        <button 
-          className="p-4 rounded-2xl hover:bg-[#FFE8CC] transition-all border-2 border-transparent hover:border-[#E8DCC8]"
-          onClick={() => setIsPlaying(!isPlaying)}
-          aria-label={isPlaying ? "Pause" : "Play"}
-        >
-          {isPlaying ? (
-            <Pause className="w-6 h-6 text-[#111111]" />
-          ) : (
-            <Play className="w-6 h-6 text-[#111111]" />
-          )}
-        </button>
+        {onPlayText && (
+          <button 
+            className="p-4 rounded-2xl hover:bg-[#FFE8CC] transition-all border-2 border-transparent hover:border-[#E8DCC8]"
+            onClick={onPlayText}
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? (
+              <Pause className="w-6 h-6 text-[#111111]" />
+            ) : (
+              <Play className="w-6 h-6 text-[#111111]" />
+            )}
+          </button>
+        )}
 
         {/* Next Sentence/Line */}
         <button 
