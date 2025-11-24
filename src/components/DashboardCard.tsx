@@ -1,5 +1,6 @@
 import { Card } from './ui/card';
 import { LucideIcon } from 'lucide-react';
+import { useTheme } from './ThemeContext';
 
 interface DashboardCardProps {
   title: string;
@@ -10,18 +11,27 @@ interface DashboardCardProps {
 }
 
 export function DashboardCard({ title, subtitle, icon: Icon, children, onClick }: DashboardCardProps) {
+  const { themeColors } = useTheme();
+  
   return (
     <Card 
-      className="p-10 hover:shadow-xl transition-all cursor-pointer border-2 border-[#E8DCC8] rounded-[2rem] bg-[#FFFCF2] h-96 flex flex-col justify-between"
+      className="p-10 hover:shadow-xl transition-all cursor-pointer border-2 rounded-[2rem] h-96 flex flex-col justify-between"
+      style={{
+        backgroundColor: themeColors.cardBackground,
+        borderColor: themeColors.border,
+      }}
       onClick={onClick}
     >
       <div>
         {Icon && (
-          <div className="w-16 h-16 rounded-2xl bg-[#FFE8CC] flex items-center justify-center mb-5">
-            <Icon className="w-8 h-8 text-[#111111]" />
+          <div 
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+            style={{ backgroundColor: themeColors.accentMain }}
+          >
+            <Icon className="w-8 h-8" style={{ color: themeColors.textMain }} />
           </div>
         )}
-        <h2 className="text-[#111111] mb-3">{title}</h2>
+        <h2 style={{ color: themeColors.textMain }} className="mb-3">{title}</h2>
       </div>
       {children && <div className="mt-4">{children}</div>}
     </Card>

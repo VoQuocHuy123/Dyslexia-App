@@ -1,15 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/OpenDyslexic-Regular.woff2');
 
-/* OpenDyslexic font - using multiple sources for better compatibility */
 @font-face {
   font-family: 'OpenDyslexic';
-  src: url('https://raw.githubusercontent.com/antijingoist/opendyslexic/master/compiled/OpenDyslexic-Regular.woff2') format('woff2'),
-       url('https://cdn.jsdelivr.net/gh/antijingoist/opendyslexic@master/compiled/OpenDyslexic-Regular.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/OpenDyslexic-Regular.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
-  font-display: swap;
 }
-
 
 @custom-variant dark (&:is(.dark *));
 
@@ -18,6 +15,24 @@
   --font-size: 18px;
   --background: #FFF8E7;
   --foreground: #111111;
+  
+  /* Theme colors - Default to cream theme */
+  --app-background: #FFF8E7;
+  --sidebar-background: #FFFCF2;
+  --card-background: #FFFCF2;
+  --border: #E8DCC8;
+  --text-main: #111111;
+  --text-secondary: #333333;
+  --text-muted: #666666;
+  --text-light: #888888;
+  --accent-main: #FFE8CC;
+  --accent-hover: #FFDDB3;
+  --exercise-card-1: #FFF4CC;
+  --exercise-card-2: #FFE9D6;
+  --exercise-card-3: #DFF7E2;
+  --exercise-card-4: #DDEFFF;
+  --shadow: rgba(0, 0, 0, 0.1);
+  
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -32,7 +47,6 @@
   --accent-foreground: #030213;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
   --input: transparent;
   --input-background: #f3f3f5;
   --switch-background: #cbced4;

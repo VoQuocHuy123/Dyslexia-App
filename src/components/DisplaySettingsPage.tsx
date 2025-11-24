@@ -2,9 +2,9 @@ import { Sidebar } from './Sidebar';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
 import { Check, ArrowLeft, Save } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { api } from '../utils/api';
-import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
+import { useTheme, themes, ThemeType } from './ThemeContext';
+import { useDisplaySettings } from './DisplaySettingsContext';
 
 interface DisplaySettingsPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -12,34 +12,6 @@ interface DisplaySettingsPageProps {
   onToggleCollapse?: () => void;
   onSignOut?: () => void;
 }
-
-type ColorTheme = {
-  name: string;
-  background: string;
-  text: string;
-  preview: string;
-};
-
-const colorThemes: ColorTheme[] = [
-  {
-    name: 'Kem & Đen',
-    background: '#FFF8E7',
-    text: '#111111',
-    preview: '#FFEB99',
-  },
-  {
-    name: 'Chế độ Tối',
-    background: '#1A1A1A',
-    text: '#FFFFFF',
-    preview: '#2A2A2A',
-  },
-  {
-    name: 'Xanh & Đen',
-    background: '#E3F2FD',
-    text: '#111111',
-    preview: '#BBDEFB',
-  },
-];
 
 const fontOptions = [
   { name: 'Arial', value: 'Arial, sans-serif' },
@@ -49,38 +21,24 @@ const fontOptions = [
 ];
 
 export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, onToggleCollapse, onSignOut }: DisplaySettingsPageProps) {
-  const [selectedFont, setSelectedFont] = useState(fontOptions[2].value);
-  const [fontSize, setFontSize] = useState(26);
-  const [letterSpacing, setLetterSpacing] = useState(0.14);
-  const [lineSpacing, setLineSpacing] = useState(1.8);
-  const [selectedTheme, setSelectedTheme] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const { currentTheme, themeColors, setTheme } = useTheme();
+  const { fontFamily, fontSize: savedFontSize, letterSpacing: savedLetterSpacing, lineSpacing: savedLineSpacing, updateSettings } = useDisplaySettings();
+  const [selectedFont, setSelectedFont] = useState(fontFamily);
+  const [fontSize, setFontSize] = useState(savedFontSize);
+  const [letterSpacing, setLetterSpacing] = useState(savedLetterSpacing);
+  const [lineSpacing, setLineSpacing] = useState(savedLineSpacing);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeType>(currentTheme);
 
-  // Load settings on mount
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const userId = localStorage.getItem('userId') || 'demo';
-        const response = await api.settings.getDisplay(userId);
-        
-        if (response.data) {
-          setSelectedFont(response.data.fontFamily || fontOptions[2].value);
-          setFontSize(response.data.fontSize || 26);
-          setLetterSpacing(response.data.letterSpacing || 0.14);
-          setLineSpacing(response.data.lineSpacing || 1.8);
-          setSelectedTheme(typeof response.data.theme === 'number' ? response.data.theme : 0);
-        }
-      } catch (error) {
-        console.error('Error loading settings:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setSelectedFont(fontFamily);
+    setFontSize(savedFontSize);
+    setLetterSpacing(savedLetterSpacing);
+    setLineSpacing(savedLineSpacing);
+  }, [fontFamily, savedFontSize, savedLetterSpacing, savedLineSpacing]);
 
-    loadSettings();
-  }, []);
-
-  const currentTheme = colorThemes[selectedTheme];
+  useEffect(() => {
+    setSelectedTheme(currentTheme);
+  }, [currentTheme]);
 
   const handleBack = () => {
     if (onNavigate) {
@@ -88,37 +46,35 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
     }
   };
 
-  const handleSave = async () => {
-    try {
-      const userId = localStorage.getItem('userId') || 'demo';
-      const response = await api.settings.updateDisplay(
-        {
-          fontFamily: selectedFont,
-          fontSize,
-          letterSpacing,
-          lineSpacing,
-          theme: selectedTheme,
-        },
-        userId
-      );
+  const handleSave = () => {
+    // Apply theme
+    setTheme(selectedTheme);
 
-      if (response.error) {
-        toast.error('Không thể lưu cài đặt. Vui lòng thử lại.');
-        console.error('Save settings error:', response.error);
-      } else {
-        toast.success('Đã lưu cài đặt thành công!');
-        if (onNavigate) {
-          onNavigate('SettingsOverview');
-        }
-      }
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      toast.error('Không thể lưu cài đặt. Vui lòng thử lại.');
+    updateSettings({
+      fontFamily: selectedFont,
+      fontSize,
+      letterSpacing,
+      lineSpacing,
+    });
+
+    console.log('Settings saved:', {
+      font: selectedFont,
+      fontSize,
+      letterSpacing,
+      lineSpacing,
+      theme: selectedTheme,
+    });
+    
+    // Navigate back
+    if (onNavigate) {
+      onNavigate('SettingsOverview');
     }
   };
 
+  const previewTheme = themes[selectedTheme];
+
   return (
-    <div className="flex h-screen bg-[#FFF8E7]">
+    <div className="flex h-screen" style={{ backgroundColor: themeColors.appBackground }}>
       {/* Sidebar */}
       <Sidebar activePage="Cài đặt" onNavigate={onNavigate} isCollapsed={isSidebarCollapsed} onToggleCollapse={onToggleCollapse} onSignOut={onSignOut} />
 
@@ -129,15 +85,19 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
           <div className="flex items-center gap-6 mb-6">
             <button
               onClick={handleBack}
-              className="w-10 h-10 rounded-xl bg-[#FFF8E7] border-2 border-[#E0DCCC] flex items-center justify-center hover:bg-[#FFF4E0] transition-all"
+              className="w-10 h-10 rounded-xl border-2 flex items-center justify-center hover:opacity-80 transition-all"
+              style={{
+                backgroundColor: themeColors.appBackground,
+                borderColor: themeColors.border,
+              }}
               aria-label="Back to Settings"
             >
-              <ArrowLeft className="w-5 h-5 text-[#111111]" />
+              <ArrowLeft className="w-5 h-5" style={{ color: themeColors.textMain }} />
             </button>
             <h1 
-              className="text-[#111111]"
               style={{
                 fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
+                color: themeColors.textMain,
               }}
             >
               Cài đặt Hiển thị & Đọc
@@ -149,8 +109,8 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
             <div 
               className="rounded-3xl border-2 shadow-lg p-12 flex items-center justify-center min-h-[160px]"
               style={{
-                backgroundColor: currentTheme.background,
-                borderColor: currentTheme.preview,
+                backgroundColor: previewTheme.appBackground,
+                borderColor: previewTheme.previewBorder,
               }}
             >
               <p
@@ -159,7 +119,7 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
                   fontSize: `${fontSize}px`,
                   letterSpacing: `${letterSpacing}em`,
                   lineHeight: lineSpacing,
-                  color: currentTheme.text,
+                  color: previewTheme.textMain,
                 }}
               >
                 Con cò bay lả bay la
@@ -170,11 +130,12 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
           {/* Font Selection */}
           <div className="mb-10">
             <label 
-              className="block text-[#111111] mb-5"
+              className="block mb-5"
               style={{
                 fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                 fontSize: '28px',
                 letterSpacing: '0.02em',
+                color: themeColors.textMain,
               }}
             >
               Phông chữ
@@ -184,14 +145,13 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
                 <button
                   key={font.value}
                   onClick={() => setSelectedFont(font.value)}
-                  className={`px-8 py-3 rounded-2xl border-2 transition-all shadow-sm ${
-                    selectedFont === font.value
-                      ? 'bg-[#D4E7F5] border-[#B8D4E8] text-[#111111]'
-                      : 'bg-[#FFF8E7] border-[#E0DCCC] text-[#111111] hover:bg-[#FFF4E0]'
-                  }`}
+                  className="px-8 py-3 rounded-2xl border-2 transition-all shadow-sm"
                   style={{
                     fontFamily: font.value,
                     fontSize: '20px',
+                    backgroundColor: selectedFont === font.value ? themeColors.accentMain : themeColors.appBackground,
+                    borderColor: selectedFont === font.value ? themeColors.border : themeColors.border,
+                    color: themeColors.textMain,
                   }}
                 >
                   {font.name}
@@ -204,11 +164,12 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
           <div className="mb-8">
             <div className="flex items-center gap-6">
               <label 
-                className="text-[#111111] w-48 flex-shrink-0"
+                className="w-48 flex-shrink-0"
                 style={{
                   fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                   fontSize: '28px',
                   letterSpacing: '0.02em',
+                  color: themeColors.textMain,
                 }}
               >
                 Cỡ chữ
@@ -230,10 +191,13 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
                 min={16}
                 max={36}
                 step={0.5}
-                className="w-24 text-center bg-[#FFF8E7] border-2 border-[#E0DCCC] rounded-xl h-11"
+                className="w-24 text-center border-2 rounded-xl h-11"
                 style={{
                   fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                   fontSize: '20px',
+                  backgroundColor: themeColors.appBackground,
+                  borderColor: themeColors.border,
+                  color: themeColors.textMain,
                 }}
               />
             </div>
@@ -243,11 +207,12 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
           <div className="mb-8">
             <div className="flex items-center gap-6">
               <label 
-                className="text-[#111111] w-48 flex-shrink-0"
+                className="w-48 flex-shrink-0"
                 style={{
                   fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                   fontSize: '28px',
                   letterSpacing: '0.02em',
+                  color: themeColors.textMain,
                 }}
               >
                 Khoảng cách chữ
@@ -269,10 +234,13 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
                 min={0}
                 max={30}
                 step={0.5}
-                className="w-24 text-center bg-[#FFF8E7] border-2 border-[#E0DCCC] rounded-xl h-11"
+                className="w-24 text-center border-2 rounded-xl h-11"
                 style={{
                   fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                   fontSize: '20px',
+                  backgroundColor: themeColors.appBackground,
+                  borderColor: themeColors.border,
+                  color: themeColors.textMain,
                 }}
               />
             </div>
@@ -282,11 +250,12 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
           <div className="mb-8">
             <div className="flex items-center gap-6">
               <label 
-                className="text-[#111111] w-48 flex-shrink-0"
+                className="w-48 flex-shrink-0"
                 style={{
                   fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                   fontSize: '28px',
                   letterSpacing: '0.02em',
+                  color: themeColors.textMain,
                 }}
               >
                 Khoảng cách dòng
@@ -308,10 +277,13 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
                 min={1.0}
                 max={3.0}
                 step={0.05}
-                className="w-24 text-center bg-[#FFF8E7] border-2 border-[#E0DCCC] rounded-xl h-11"
+                className="w-24 text-center border-2 rounded-xl h-11"
                 style={{
                   fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                   fontSize: '20px',
+                  backgroundColor: themeColors.appBackground,
+                  borderColor: themeColors.border,
+                  color: themeColors.textMain,
                 }}
               />
             </div>
@@ -320,40 +292,61 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
           {/* Color Theme */}
           <div className="mb-10">
             <label 
-              className="block text-[#111111] mb-5"
+              className="block mb-5"
               style={{
                 fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                 fontSize: '28px',
                 letterSpacing: '0.02em',
+                color: themeColors.textMain,
               }}
             >
               Chủ đề màu
             </label>
             <div className="flex gap-6">
-              {colorThemes.map((theme, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedTheme(index)}
-                  className={`relative w-16 h-16 rounded-full border-4 transition-all ${
-                    selectedTheme === index
-                      ? 'border-[#111111] scale-110'
-                      : 'border-[#E0DCCC] hover:scale-105'
-                  }`}
-                  style={{
-                    backgroundColor: theme.background,
-                  }}
-                  aria-label={theme.name}
-                >
-                  {selectedTheme === index && (
-                    <div 
-                      className="absolute inset-0 flex items-center justify-center"
-                      style={{ color: theme.text }}
-                    >
-                      <Check className="w-8 h-8" strokeWidth={3} />
-                    </div>
-                  )}
-                </button>
-              ))}
+              {(Object.keys(themes) as ThemeType[]).map((themeKey) => {
+                const theme = themes[themeKey];
+                return (
+                  <button
+                    key={themeKey}
+                    onClick={() => setSelectedTheme(themeKey)}
+                    className="relative w-16 h-16 rounded-full border-4 transition-all"
+                    style={{
+                      backgroundColor: theme.appBackground,
+                      borderColor: selectedTheme === themeKey ? themeColors.textMain : themeColors.border,
+                      transform: selectedTheme === themeKey ? 'scale(1.1)' : 'scale(1)',
+                    }}
+                    aria-label={theme.displayName}
+                  >
+                    {selectedTheme === themeKey && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center"
+                        style={{ color: theme.textMain }}
+                      >
+                        <Check className="w-8 h-8" strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Theme Names */}
+            <div className="flex gap-6 mt-3">
+              {(Object.keys(themes) as ThemeType[]).map((themeKey) => {
+                const theme = themes[themeKey];
+                return (
+                  <div 
+                    key={`name-${themeKey}`} 
+                    className="w-16 text-center"
+                    style={{
+                      fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
+                      fontSize: '16px',
+                      color: themeColors.textSecondary,
+                    }}
+                  >
+                    {theme.displayName}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -361,11 +354,14 @@ export function DisplaySettingsPage({ onNavigate, isSidebarCollapsed = false, on
           <div className="flex justify-center pt-4 pb-8">
             <button
               onClick={handleSave}
-              className="bg-[#D4E7F5] hover:bg-[#C5DCF0] text-[#111111] px-12 py-4 rounded-2xl border-2 border-[#B8D4E8] shadow-md hover:shadow-lg transition-all flex items-center gap-4"
+              className="px-12 py-4 rounded-2xl border-2 shadow-md hover:shadow-lg transition-all flex items-center gap-4 hover:opacity-90"
               style={{
                 fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                 fontSize: '24px',
                 letterSpacing: '0.02em',
+                backgroundColor: themeColors.accentMain,
+                borderColor: themeColors.border,
+                color: themeColors.textMain,
               }}
             >
               <Save className="w-6 h-6" />

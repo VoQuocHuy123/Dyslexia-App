@@ -1,58 +1,67 @@
-import { Mic, RotateCcw, Play, Pause } from 'lucide-react';
+import { Mic, RotateCcw } from 'lucide-react';
+import { useTheme } from './ThemeContext';
 
 interface SpeakingToolbarProps {
-  isRecording: boolean;
-  isPlaying?: boolean;
-  onToggleRecording: () => void;
-  onReset: () => void;
-  onPlayText?: () => void;
+  isRecording?: boolean;
+  onToggleRecording?: () => void;
+  onReset?: () => void;
 }
 
-export function SpeakingToolbar({ isRecording, isPlaying = false, onToggleRecording, onReset, onPlayText }: SpeakingToolbarProps) {
+export function SpeakingToolbar({ isRecording = false, onToggleRecording, onReset }: SpeakingToolbarProps) {
+  const { themeColors } = useTheme();
+
   return (
     <div className="flex justify-center">
-      <div className="bg-[#FAF7F0] rounded-[1.75rem] border-2 border-[#E8DCC8] shadow-md px-8 py-6 flex items-center gap-8">
-        {/* Play Button */}
-        {onPlayText && (
-          <button
-            onClick={onPlayText}
-            disabled={isPlaying || isRecording}
-            className="w-16 h-16 rounded-2xl bg-[#D4E7F5] border-2 border-[#B8D4E8] hover:bg-[#C5DCF0] flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={isPlaying ? 'Playing' : 'Play text'}
-          >
-            {isPlaying ? (
-              <Pause className="w-8 h-8 text-[#111111]" />
-            ) : (
-              <Play className="w-8 h-8 text-[#111111]" />
-            )}
-          </button>
-        )}
-
+      <div 
+        className="rounded-[1.75rem] border-2 shadow-md px-8 py-6 flex items-center gap-8"
+        style={{
+          backgroundColor: themeColors.sidebarBackground,
+          borderColor: themeColors.border,
+        }}
+      >
         {/* Mic Button */}
         <button
           onClick={onToggleRecording}
-          disabled={isPlaying}
-          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${
-            isRecording
-              ? 'bg-[#E24E4E] shadow-[0_0_20px_rgba(226,78,78,0.4)] border-2 border-[#E24E4E]'
-              : 'bg-[#FFF8E7] border-2 border-[#E8DCC8] hover:bg-[#FFF4E0]'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-          aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+          className="w-20 h-20 rounded-full transition-all flex items-center justify-center"
+          style={{
+            backgroundColor: isRecording ? '#E24E4E' : themeColors.appBackground,
+            borderWidth: '2px',
+            borderStyle: 'solid',
+            borderColor: isRecording ? '#E24E4E' : themeColors.border,
+            boxShadow: isRecording ? '0 0 20px rgba(226,78,78,0.4)' : undefined,
+          }}
+          onMouseEnter={(e) => {
+            if (!isRecording) {
+              e.currentTarget.style.backgroundColor = themeColors.accentHover;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isRecording) {
+              e.currentTarget.style.backgroundColor = themeColors.appBackground;
+            }
+          }}
+          aria-label={isRecording ? "Stop recording" : "Start recording"}
         >
-          <Mic 
-            className={`w-8 h-8 ${isRecording ? 'text-white' : 'text-[#111111]'}`}
-            fill={isRecording ? 'white' : 'none'}
-          />
+          <Mic className="w-9 h-9" style={{ color: isRecording ? '#FFFFFF' : themeColors.textMain }} />
         </button>
 
         {/* Reset Button */}
         <button
           onClick={onReset}
-          disabled={isPlaying}
-          className="w-16 h-16 rounded-2xl bg-[#FFF8E7] border-2 border-[#E8DCC8] hover:bg-[#FFF4E0] flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-16 h-16 rounded-2xl border-2 flex items-center justify-center transition-all"
+          style={{
+            backgroundColor: themeColors.appBackground,
+            borderColor: themeColors.border,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = themeColors.accentHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = themeColors.appBackground;
+          }}
           aria-label="Reset reading"
         >
-          <RotateCcw className="w-8 h-8 text-[#111111]" />
+          <RotateCcw className="w-6 h-6" style={{ color: themeColors.textMain }} />
         </button>
       </div>
     </div>
