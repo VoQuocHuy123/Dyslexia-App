@@ -1,6 +1,7 @@
 import { Sidebar } from './Sidebar';
 import { SettingsCard } from './SettingsCard';
 import { Volume2 } from 'lucide-react';
+import { useTheme } from './ThemeContext';
 
 interface SettingsOverviewPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -10,6 +11,7 @@ interface SettingsOverviewPageProps {
 }
 
 export function SettingsOverviewPage({ onNavigate, isSidebarCollapsed = false, onToggleCollapse, onSignOut }: SettingsOverviewPageProps) {
+  const { themeColors } = useTheme();
   
   const handleDisplaySettingsClick = () => {
     if (onNavigate) {
@@ -24,7 +26,7 @@ export function SettingsOverviewPage({ onNavigate, isSidebarCollapsed = false, o
   };
 
   return (
-    <div className="flex h-screen bg-[#FFF8E7]">
+    <div className="flex h-screen" style={{ backgroundColor: themeColors.appBackground }}>
       {/* Sidebar */}
       <Sidebar activePage="Cài đặt" onNavigate={onNavigate} isCollapsed={isSidebarCollapsed} onToggleCollapse={onToggleCollapse} onSignOut={onSignOut} />
 

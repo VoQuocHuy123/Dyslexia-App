@@ -1,7 +1,8 @@
 import { Sidebar } from './Sidebar';
-import { ReadingCard } from './ReadingCard';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useState } from 'react';
+import { useTheme } from './ThemeContext';
+import { ReadingCard } from './ReadingCard';
 
 interface ReadingSelectionPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -11,6 +12,7 @@ interface ReadingSelectionPageProps {
 }
 
 export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed = false, onToggleCollapse }: ReadingSelectionPageProps) {
+  const { themeColors } = useTheme();
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [topicScrollIndex, setTopicScrollIndex] = useState(0);
@@ -130,7 +132,7 @@ export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed
   };
 
   return (
-    <div className="flex h-screen bg-[#FFF8E7]">
+    <div className="flex h-screen" style={{ backgroundColor: themeColors.appBackground }}>
       {/* Sidebar */}
       <Sidebar 
         activePage="Đọc" 
@@ -146,15 +148,18 @@ export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed
           {/* Search Bar */}
           <div className="mb-8">
             <div className="relative">
-              <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 w-7 h-7 text-[#666666]" />
+              <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 w-7 h-7" style={{ color: themeColors.textMuted }} />
               <input
                 type="text"
                 placeholder="Tìm kiếm bài đọc..."
-                className="w-full bg-[#FFFCF2] border-2 border-[#E0DCCC] rounded-3xl pl-16 pr-6 py-5 text-[#111111] placeholder:text-[#999999] focus:outline-none focus:border-[#D4C5A9] focus:ring-0 shadow-md transition-all"
+                className="w-full rounded-3xl pl-16 pr-6 py-5 placeholder:text-[#999999] focus:outline-none focus:ring-0 shadow-md transition-all border-2"
                 style={{
                   fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                   fontSize: '24px',
                   letterSpacing: '0.12em',
+                  backgroundColor: themeColors.cardBackground,
+                  borderColor: themeColors.border,
+                  color: themeColors.textMain,
                 }}
               />
             </div>
@@ -167,15 +172,14 @@ export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed
                 <button
                   key={level}
                   onClick={() => setSelectedLevel(level)}
-                  className={`px-8 py-3 rounded-2xl border-2 transition-all shadow-sm ${
-                    selectedLevel === level
-                      ? 'bg-[#D4E7F5] border-[#B8D4E8] text-[#111111]'
-                      : 'bg-[#FFFCF2] border-[#E0DCCC] text-[#111111] hover:bg-[#FFF4E0]'
-                  }`}
+                  className="px-8 py-3 rounded-2xl border-2 transition-all shadow-sm"
                   style={{
                     fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                     fontSize: '24px',
                     letterSpacing: '0.12em',
+                    backgroundColor: selectedLevel === level ? themeColors.accentMain : themeColors.cardBackground,
+                    borderColor: selectedLevel === level ? themeColors.accentHover : themeColors.border,
+                    color: themeColors.textMain,
                   }}
                 >
                   {level}
@@ -187,11 +191,12 @@ export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed
           {/* Topic Filter with Horizontal Scroll */}
           <div className="mb-12">
             <div 
-              className="text-[#111111] mb-4"
+              className="mb-4"
               style={{
                 fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                 fontSize: '26px',
                 letterSpacing: '0.12em',
+                color: themeColors.textMain,
               }}
             >
               Chủ đề:
@@ -201,10 +206,14 @@ export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed
               {topicScrollIndex > 0 && (
                 <button
                   onClick={() => setTopicScrollIndex(topicScrollIndex - 1)}
-                  className="flex-shrink-0 w-12 h-12 rounded-full bg-[#D4E7F5] border-2 border-[#B8D4E8] flex items-center justify-center hover:bg-[#C5DCF0] transition-all shadow-md"
+                  className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md border-2"
+                  style={{
+                    backgroundColor: themeColors.accentMain,
+                    borderColor: themeColors.accentHover,
+                  }}
                   aria-label="Previous topics"
                 >
-                  <ChevronLeft className="w-6 h-6 text-[#111111]" />
+                  <ChevronLeft className="w-6 h-6" style={{ color: themeColors.textMain }} />
                 </button>
               )}
 
@@ -215,15 +224,14 @@ export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed
                     <button
                       key={topic.name}
                       onClick={() => setSelectedTopic(selectedTopic === topic.name ? null : topic.name)}
-                      className={`flex-shrink-0 px-6 py-3 rounded-2xl border-2 transition-all shadow-sm ${
-                        selectedTopic === topic.name
-                          ? 'bg-[#FFE8CC] border-[#E8DCC8] text-[#111111]'
-                          : 'bg-[#FFFCF2] border-[#E0DCCC] text-[#111111] hover:bg-[#FFF4E0]'
-                      }`}
+                      className="flex-shrink-0 px-6 py-3 rounded-2xl border-2 transition-all shadow-sm"
                       style={{
                         fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
                         fontSize: '24px',
                         letterSpacing: '0.12em',
+                        backgroundColor: selectedTopic === topic.name ? themeColors.accentMain : themeColors.cardBackground,
+                        borderColor: selectedTopic === topic.name ? themeColors.accentHover : themeColors.border,
+                        color: themeColors.textMain,
                       }}
                     >
                       <span className="mr-2">{topic.icon}</span>
@@ -237,10 +245,14 @@ export function ReadingSelectionPage({ onNavigate, onSignOut, isSidebarCollapsed
               {topicScrollIndex < maxScrollIndex && (
                 <button
                   onClick={() => setTopicScrollIndex(topicScrollIndex + 1)}
-                  className="flex-shrink-0 w-12 h-12 rounded-full bg-[#D4E7F5] border-2 border-[#B8D4E8] flex items-center justify-center hover:bg-[#C5DCF0] transition-all shadow-md"
+                  className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md border-2"
+                  style={{
+                    backgroundColor: themeColors.accentMain,
+                    borderColor: themeColors.accentHover,
+                  }}
                   aria-label="Next topics"
                 >
-                  <ChevronRight className="w-6 h-6 text-[#111111]" />
+                  <ChevronRight className="w-6 h-6" style={{ color: themeColors.textMain }} />
                 </button>
               )}
             </div>

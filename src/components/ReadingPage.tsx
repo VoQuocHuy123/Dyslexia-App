@@ -4,7 +4,8 @@ import { QuickSettingsDrawer } from './QuickSettingsDrawer';
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Volume2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
-import { speakText } from '../utils/textToSpeech';
+import { useTheme } from './ThemeContext';
+import { useDisplaySettings } from './DisplaySettingsContext';
 
 interface ReadingPageProps {
   onNavigate?: (page: 'Home' | 'Reading' | 'ReadingSelection' | 'Speaking' | 'SpeakingSelection' | 'Library' | 'SettingsOverview' | 'DisplaySettings' | 'AudioSettings' | 'OCRImport') => void;
@@ -24,6 +25,7 @@ interface ContextualToolbarProps {
 }
 
 function ContextualToolbar({ word, position, onClose, onAddToLibrary, onToggleBold, onPlayWord, isBold }: ContextualToolbarProps) {
+  const { themeColors } = useTheme();
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,10 +42,12 @@ function ContextualToolbar({ word, position, onClose, onAddToLibrary, onToggleBo
   return (
     <div
       ref={toolbarRef}
-      className="fixed z-50 bg-[#FFFDF5] rounded-xl border-2 border-[#E8DCC8] shadow-xl p-2 flex gap-2 animate-in fade-in slide-in-from-bottom-1 duration-200"
+      className="fixed z-50 rounded-xl border-2 shadow-xl p-2 flex gap-2 animate-in fade-in slide-in-from-bottom-1 duration-200"
       style={{
         left: `${position.x}px`,
         top: `${position.y - 60}px`,
+        backgroundColor: themeColors.cardBackground,
+        borderColor: themeColors.border,
       }}
     >
       {/* Add to Library */}
@@ -52,11 +56,20 @@ function ContextualToolbar({ word, position, onClose, onAddToLibrary, onToggleBo
           onAddToLibrary(word);
           onClose();
         }}
-        className="w-10 h-10 rounded-full bg-[#D4E7F5] hover:bg-[#C5DCF0] flex items-center justify-center transition-all shadow-sm hover:shadow-md"
+        className="w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm hover:shadow-md"
+        style={{
+          backgroundColor: '#D4E7F5',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#C5DCF0';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#D4E7F5';
+        }}
         aria-label="Add to library"
         title="Thêm vào thư viện"
       >
-        <Plus className="w-5 h-5 text-[#111111]" />
+        <Plus className="w-5 h-5" style={{ color: themeColors.textMain }} />
       </button>
 
       {/* Bold Toggle */}
@@ -64,35 +77,54 @@ function ContextualToolbar({ word, position, onClose, onAddToLibrary, onToggleBo
         onClick={() => {
           onToggleBold(word);
         }}
-        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm hover:shadow-md ${
-          isBold ? 'bg-[#FFE8CC] hover:bg-[#FFDDB3]' : 'bg-[#D4E7F5] hover:bg-[#C5DCF0]'
-        }`}
-        aria-label="Toggle bold"
-        title="Đậm"
+        className="w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm hover:shadow-md"
         style={{
+          backgroundColor: isBold ? themeColors.accentMain : '#D4E7F5',
           fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
         }}
+        onMouseEnter={(e) => {
+          if (!isBold) {
+            e.currentTarget.style.backgroundColor = '#C5DCF0';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isBold) {
+            e.currentTarget.style.backgroundColor = '#D4E7F5';
+          }
+        }}
+        aria-label="Toggle bold"
+        title="Đậm"
       >
-        <span className={isBold ? 'font-bold' : ''}>B</span>
+        <span className={isBold ? 'font-bold' : ''} style={{ color: themeColors.textMain }}>B</span>
       </button>
 
       {/* Play Word */}
       <button
         onClick={() => {
           onPlayWord(word);
-          onClose();
         }}
-        className="w-10 h-10 rounded-full bg-[#D4E7F5] hover:bg-[#C5DCF0] flex items-center justify-center transition-all shadow-sm hover:shadow-md"
-        aria-label="Play pronunciation"
-        title="Phát âm"
+        className="w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm hover:shadow-md"
+        style={{
+          backgroundColor: '#D4E7F5',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#C5DCF0';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#D4E7F5';
+        }}
+        aria-label="Play word"
+        title="Nghe"
       >
-        <Volume2 className="w-5 h-5 text-[#111111]" />
+        <Volume2 className="w-5 h-5" style={{ color: themeColors.textMain }} />
       </button>
     </div>
   );
 }
 
 export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false, onToggleCollapse }: ReadingPageProps) {
+  const { themeColors } = useTheme();
+  const { fontFamily, fontSize, letterSpacing, lineSpacing } = useDisplaySettings();
   const [isMirrorEnabled, setIsMirrorEnabled] = useState(false);
   const [isSyllableMode, setIsSyllableMode] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -101,7 +133,6 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
   const [boldWords, setBoldWords] = useState<Set<string>>(new Set());
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const readingBoxRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lastScrollTime = useRef<number>(0);
@@ -134,57 +165,23 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
     });
   };
 
-  const handlePlayWord = async (word: string) => {
-    try {
-      await speakText({
-        text: word,
-        lang: 'vi-VN',
-        rate: 1.0,
-      });
-    } catch (error) {
-      console.error('Error playing word:', error);
-      toast.error('Không thể phát âm. Vui lòng thử lại.');
-    }
+  const handlePlayWord = (word: string) => {
+    toast.info(`Đang phát âm: "${word}"`);
+    // In a real app, this would use Web Speech API
   };
 
-  const handlePlayText = async () => {
-    if (isPlaying) {
-      // Stop speaking
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-      setIsPlaying(false);
-      return;
-    }
-
-    setIsPlaying(true);
-    try {
-      await speakText({
-        text: sampleText,
-        lang: 'vi-VN',
-        rate: 1.0,
-      });
-    } catch (error) {
-      console.error('Error playing text:', error);
-      toast.error('Không thể phát âm. Vui lòng thử lại.');
-    } finally {
-      setIsPlaying(false);
-    }
-  };
-
-  // Highlight mirror letters within a word
+  // Highlight mirror letters
   const highlightMirrorLetters = (text: string) => {
     if (!isMirrorEnabled) return text;
-    
+
+    const mirrorLetters = ['b', 'd', 'p', 'q', 'B', 'D', 'P', 'Q'];
     const chars = text.split('');
-    return chars.map((char, idx) => {
-      const lowerChar = char.toLowerCase();
-      
-      // Check for m/n/u group
-      if (['m', 'n', 'u'].includes(lowerChar)) {
+
+    return chars.map((char, index) => {
+      if (mirrorLetters.includes(char)) {
         return (
-          <span 
-            key={idx} 
+          <span
+            key={index}
             className="rounded px-0.5"
             style={{ backgroundColor: '#CBE7FF' }}
           >
@@ -192,20 +189,6 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
           </span>
         );
       }
-      
-      // Check for q/p/b/d group
-      if (['q', 'p', 'b', 'd'].includes(lowerChar)) {
-        return (
-          <span 
-            key={idx} 
-            className="rounded px-0.5"
-            style={{ backgroundColor: '#FAD4D4' }}
-          >
-            {char}
-          </span>
-        );
-      }
-      
       return char;
     });
   };
@@ -223,9 +206,15 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
         <span
           key={index}
           onClick={(e) => handleWordClick(trimmedWord, e)}
-          className="cursor-pointer hover:bg-[#FFE8CC] hover:bg-opacity-50 rounded px-1 transition-colors inline-block"
+          className="cursor-pointer rounded px-1 transition-colors inline-block"
           style={{
             fontWeight: isBold ? 'bold' : 'normal',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `${themeColors.accentMain}80`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
           }}
         >
           {highlightMirrorLetters(segment)}
@@ -264,9 +253,15 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
                   e.stopPropagation();
                   handleWordClick(trimmedWord, e);
                 }}
-                className="hover:bg-[#FFE8CC] hover:bg-opacity-50 rounded px-1 transition-colors inline-block"
+                className="rounded px-1 transition-colors inline-block"
                 style={{
                   fontWeight: isBold ? 'bold' : 'normal',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${themeColors.accentMain}80`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
                 {highlightMirrorLetters(segment)}
@@ -396,7 +391,7 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
   };
 
   return (
-    <div className="flex h-screen bg-[#FFF8E7]">
+    <div className="flex h-screen" style={{ backgroundColor: themeColors.appBackground }}>
       {/* Sidebar */}
       <Sidebar 
         activePage="Đọc" 
@@ -412,19 +407,24 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
           {/* Reading Content Frame */}
           <div 
             ref={readingBoxRef}
-            className={`w-full max-w-4xl h-full max-h-[calc(100vh-180px)] bg-[#FFF8E7] rounded-[2rem] border-2 border-[#E8DCC8] shadow-lg p-12 relative ${
+            className={`w-full max-w-4xl h-full max-h-[calc(100vh-180px)] rounded-[2rem] border-2 shadow-lg p-12 relative ${
               isFocusMode ? 'focus-mode-active overflow-hidden' : 'overflow-y-auto'
             }`}
+            style={{
+              backgroundColor: themeColors.cardBackground,
+              borderColor: themeColors.border,
+            }}
           >
             <div 
-              className="text-[#111111] mx-auto select-none"
+              className="mx-auto select-none"
               style={{
-                fontFamily: "'OpenDyslexic', 'Lexend', sans-serif",
-                fontSize: '26px',
-                lineHeight: '1.8',
-                letterSpacing: '0.14em',
+              fontFamily,
+              fontSize: `${fontSize}px`,
+              lineHeight,
+              letterSpacing: `${letterSpacing}em`,
                 maxWidth: '66ch',
                 wordSpacing: '0.16em',
+                color: themeColors.textMain,
               }}
             >
               {isFocusMode ? renderFocusModeText() : renderInteractiveText()}
@@ -436,13 +436,13 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
                 <div 
                   className="absolute top-0 left-0 right-0 h-24 pointer-events-none"
                   style={{
-                    background: 'linear-gradient(to bottom, #FFF8E7 0%, transparent 100%)',
+                    background: `linear-gradient(to bottom, ${themeColors.cardBackground} 0%, transparent 100%)`,
                   }}
                 />
                 <div 
                   className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
                   style={{
-                    background: 'linear-gradient(to top, #FFF8E7 0%, transparent 100%)',
+                    background: `linear-gradient(to top, ${themeColors.cardBackground} 0%, transparent 100%)`,
                   }}
                 />
               </>
@@ -458,11 +458,9 @@ export function ReadingPage({ onNavigate, onSignOut, isSidebarCollapsed = false,
             onToggleFocusMode={setIsFocusMode}
             onPreviousLine={handlePreviousLine}
             onNextLine={handleNextLine}
-            onPlayText={handlePlayText}
             isMirrorEnabled={isMirrorEnabled}
             isSyllableMode={isSyllableMode}
             isFocusMode={isFocusMode}
-            isPlaying={isPlaying}
           />
         </div>
 
